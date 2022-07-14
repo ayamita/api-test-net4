@@ -12,7 +12,7 @@ using WebApplication1.Models;
 
 namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "https://localhost:4200", headers: "*", methods: "*", SupportsCredentials = true)]
+    [EnableCors(origins: "http://localhost:4200/", headers: "*", methods: "*")]
     public class UsersController : Controller
     {
         [HttpGet]
@@ -21,7 +21,7 @@ namespace WebApplication1.Controllers
             JsonResult jsonResult;
             var response = await GetUsers();
             jsonResult = Json(response, JsonRequestBehavior.AllowGet);
-           
+
             return jsonResult;
         }
 
@@ -32,12 +32,14 @@ namespace WebApplication1.Controllers
             using (var db = new dbTest())
             {
                 await Task.Run(() => {
-                    lstUsers = db.Users.ToList();
+                    lstUsers = db.Users
+                                .OrderByDescending(x => x.id_user)
+                                .ToList();
                 });
-                
+
                 return lstUsers;
             }
-            
+
         }
 
         [HttpGet]
@@ -59,9 +61,9 @@ namespace WebApplication1.Controllers
                     users = db.Users
                        .Where(x => x.id_user == id)
                        .FirstOrDefault();
-                   
-                });                                               
-                
+
+                });
+
             }
             return users;
 
@@ -70,7 +72,7 @@ namespace WebApplication1.Controllers
         static HttpClient client = new HttpClient();
 
         [HttpPost]
-        public async Task<ActionResult> Login(string user, string password)
+        public async Task<JsonResult> Login(string user, string password)
         {
             JsonResult jsonResult;
             var response = await Authentification(user, password);
@@ -110,13 +112,83 @@ namespace WebApplication1.Controllers
                        .FirstOrDefault();
 
                     usuarios.id_user = Convert.ToInt32(users);
-                });               
+                });
             }
             return usuarios;
 
         }
 
+        [HttpPost]
+        public async Task<JsonResult> InsertUser(string user, string password)
+        {
+            var response = new PruebaModel();
 
+            try
+            {
+                using (var db = new dbTest())
+                {
+                    await Task.Run(() =>
+                    {
+                        var u = new User
+                        {
+                            user1 = user,
+                            password = password
+                        };
+
+                        db.Users.Add(u);
+                        db.SaveChanges();
+                    });
+                }
+
+                response.msm = "Se ingreso correctamente el usuario";
+                response.status = 1;
+
+            }
+            catch
+            {
+                response.msm = "No de ha podido ingresado correctamente el usuario";
+                response.status = 0;
+            }
+
+            return Json(response, JsonRequestBehavior.AllowGet);
+
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> DeleteUser(int id_user)
+        {
+            var response = new PruebaModel();
+
+            try
+            {
+                using (var db = new dbTest())
+                {
+                    await Task.Run(() =>
+                    {
+                        var u = new User
+                        {
+                            id_user = id_user
+                        };
+
+                        db.Users.Attach(u);
+                        db.Users.Remove(u);
+                        db.SaveChanges();
+                    });
+                }
+
+                response.msm = "Se ha eliminado el usuario correctamente";
+                response.status = 1;
+
+            }
+            catch
+            {
+                response.msm = "No se ha podido eliminar el usuario correctamente";
+                response.status = 0;
+            }
+
+            return Json(response, JsonRequestBehavior.AllowGet);
+
+        }
 
 
 
